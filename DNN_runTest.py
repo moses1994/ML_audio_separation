@@ -45,13 +45,13 @@ file_data_list = join(corpus_dir, "input/data_list_test")
 
 #change variable
 
-models_dir = join(models_dir, 'model_RNN_epoch:50_batchSize:256_appendNum:1' )
+models_dir = join(models_dir, 'model_DNN_epoch:50_batchSize:1024_appendNum:6' )
 
 model_structure = join(models_dir, 'model_structure') 
 
-model_weight_path = join(models_dir, 'RNN_epoch:30_4096_0_100_4.80055571663')
+model_weight_path = join(models_dir, 'DNN_epoch:30_MSE_2.29017765366')
 
-batchAppendNum = 0
+batchAppendNum = 6
 
 catagoryNum = 2
 
@@ -101,16 +101,18 @@ predict_part = 0
 x_test_batch, y_test_batch, freqNum = dataToBatch(feats_dir ,wav_lists[orderTest], y_lists[orderTest],catagoryNum ,batchAppendNum, True)
 y_predict = separator.predict(x_test_batch, batch_size = nBatchSize)
 
-y_predict = merge_realAndImg(np.transpose(y_test_batch[:, predict_part * freqNum : (predict_part + 1) * freqNum]))
+for predict_part in range(catagoryNum):
 
-print(y_predict.shape)
+    yy_predict = merge_realAndImg(np.transpose(y_predict[:, predict_part * freqNum : (predict_part + 1) * freqNum]))
 
-z1 = librosa.core.istft(y_predict)
+    print(yy_predict.shape)
 
-y, sr = librosa.load('../corpus/cat1/1_36.wav')
+    z1 = librosa.core.istft(yy_predict)
+
+    y, sr = librosa.load('../corpus/cat1/1_36.wav')
 
 
-librosa.output.write_wav(model_dirs + str(predict_part) + '_' + wav_lists[5], z1, sr)
+    librosa.output.write_wav(models_dir + '/'  + str(predict_part) + '_' + wav_lists[orderTest], z1, sr)
 
 
 

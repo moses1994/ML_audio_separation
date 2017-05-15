@@ -5,6 +5,7 @@ import numpy as np
 from os.path import basename, splitext, join, dirname
 
 
+import json
 import librosa
 from librosa.feature import melspectrogram
 from librosa import load
@@ -33,9 +34,9 @@ batchAppendNum = 6;
 nBatchSize = 1024
 
 
-hiddenUnitNum = batchAppendNum * 300
+hiddenUnitNum = 500
 
-nEpoch=5
+nEpoch=50
 
 project_dir = "/home/mtl/Documents/audio_separation"
 
@@ -166,18 +167,17 @@ B, y_freqBand = y.shape
 
 
 input_audio = Input(shape = (x_freqBand, ))
-layer1 = Dense(3*hiddenUnitNum, activation=None, use_bias=True ) (input_audio)
+layer1 = Dense(2*hiddenUnitNum, activation=None, use_bias=True ) (input_audio)
 layer2 = Dense(2*hiddenUnitNum, activation=None, use_bias=True )(layer1)
-layer3 = Dense(math.floor(hiddenUnitNum/2), activation=None, use_bias=True )(layer2)
-layer4 = Dense(hiddenUnitNum, activation=None, use_bias=True )(layer3)
-audio_output = Dense(y_freqBand, activation=None, use_bias=True)(layer4)
+layer3 = Dense(hiddenUnitNum, activation=None, use_bias=True )(layer2)
+audio_output = Dense(y_freqBand, activation=None, use_bias=True)(layer3)
 
 separator = Model(input_audio, audio_output)
 
 separator.compile(optimizer='adadelta', loss='mean_squared_error')
 
 #create model directory
-directory = models_dir+'/model_DNN_epoch:'+str(nEpoch)+'_batchSize:'+str(nBatchSize)+'_appendNum:'+str(batchAppendNum)
+directory = models_dir+'/unit:' + str(hiddenUnitNum) + '_'  + 'model_DNN_epoch:' +str(nEpoch)+'_batchSize:'+str(nBatchSize)+'_appendNum:'+str(batchAppendNum)
 os.makedirs(directory)
 
 models_dir = directory
@@ -198,21 +198,22 @@ for trainingEpoch in range(nEpoch):
         x_batch, y_batch, freqNum = dataToBatch(x_train[dataOrder], y_train[dataOrder], batchAppendNum, True)
         separator.fit(x_batch, y_batch,
                 epochs=1,
-                batch_size = nBatchSize)
+                batch_size = nBatchSize,
+                shuffle = False)
         
     x_test_batch, y_test_batch, freqNum = dataToBatch(x_test[0], y_test[0], batchAppendNum, True)
     y_predict = separator.predict(x_test_batch)
     MSE = ((y_predict - y_test_batch)**2).mean(axis=None)
     print("MSE:",MSE)
-    print("A:", y_predict[700,0:10])
-    print("B:", y_test_batch[700,0:10])
-    if (trainingEpochi + 1) % 10 == 0:
-        separator.save_weights(models_dir+'/DNN_epoch:'+str(trainingEpoch)+'_MSE_'+str(MSE))
+    print("A:", y_predict[700,100:110])
+    print("B:", y_test_batch[700,100:110])
+    if (trainingEpoch + 1) % 5 == 0:
+        separator.save_weights(models_dir + '/DNN_epoch:' + str(trainingEpoch + 1) + '_MSE_'+str(MSE))
 
 
 #predict
 
-separator.save_weights(models_dir+'/'+str(nBatchSize)+'_'+str(batchAppendNum)+'_'+str(nEpoch)+'_'+str(MSE))
+separator.save_weights(models_dir + '/' + str(nBatchSize) + '_' + str(batchAppendNum) + '_' + str(nEpoch) + '_'+str(MSE))
 
 
 x_test_batch, y_test_batch, freqNum = dataToBatch(x_test[0], y_test[0], batchAppendNum, True)
